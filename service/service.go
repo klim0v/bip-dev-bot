@@ -44,19 +44,11 @@ func (s *Service) executeCommand(update tgbotapi.Update, localizer *i18n.Localiz
 		msg = tgbotapi.NewMessage(update.Message.Chat.ID, "помощи не будет, давай уж как нибудь сам :/")
 		msg.ReplyMarkup = tgbotapi.NewReplyKeyboard(
 			tgbotapi.NewKeyboardButtonRow(
-				tgbotapi.NewKeyboardButton(
-					localizer.MustLocalize(
-						&i18n.LocalizeConfig{
-							DefaultMessage: &i18n.Message{
-								ID: "ByCoin",
-							},
-						},
-					),
-				),
-				tgbotapi.NewKeyboardButton("Продать"),
+				tgbotapi.NewKeyboardButton(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ByCoin"})),
+				tgbotapi.NewKeyboardButton(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "SellCoin"})),
 			),
 			tgbotapi.NewKeyboardButtonRow(
-				tgbotapi.NewKeyboardButton("Мои заявки"),
+				tgbotapi.NewKeyboardButton(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "MyOrders"})),
 			),
 		)
 	}
