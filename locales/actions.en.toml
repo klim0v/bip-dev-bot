@@ -1,3 +1,5 @@
 ByCoin = "Buy BIP"
 SellCoin = "Sell BIP & Coins"
 MyOrders = "My orders"
+Help = "help text"
+SendMinterAddress = "Choose your address on the Minter network or enter a new one.\n\n*Example:* Mx00000000000000000000000000000000000001"
