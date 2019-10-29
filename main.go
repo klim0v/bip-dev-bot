@@ -29,6 +29,21 @@ type CommandHandler struct {
 	Reply     string
 }
 
+type Chat struct {
+	lastMessage string
+	ChatID      int64
+}
+
+func (c Chat) createHandler(update tgbotapi.Update) CommandHandler {
+	if update.Message != nil {
+		return createCommandByMessage(update.Message)
+	}
+	if update.CallbackQuery != nil {
+		//todo: return createCommandByCallbackQuery(update.Message)
+	}
+	return CommandHandler{}
+}
+
 func main() {
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_APITOKEN"))
 	if err != nil {
@@ -51,39 +66,42 @@ func main() {
 	go func() {
 		for update := range updates {
 			wg.Add(1)
-			if update.Message != nil {
-				chatLang := "ru"
-				log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-				commandHandler := &CommandHandler{
-					ChatID:    update.Message.Chat.ID,
-					Localizer: i18n.NewLocalizer(languageBundle, chatLang, update.Message.From.LanguageCode),
-					Command:   update.Message.Command(),
-					Args:      update.Message.CommandArguments(),
-					Reply:     "",
-				}
-				if !update.Message.IsCommand() {
-					commandHandler.Command = "todo" //todo: get last bot message by update.Message.Chat.ID from redis
-					commandHandler.Args = update.Message.Text
-				}
-
-				msg := commandHandler.createReplyMessage()
-
-				//todo: save commandHandler.Reply to redis
-
-				if _, err := bot.Send(msg); err != nil {
-					log.Println(err)
-				}
-
+			{
+				commandHandler := Chat{lastMessage: "todo"}.createHandler(update)
+				go handleCommand(commandHandler, bot, &wg)
 			}
-			wg.Done()
-
 		}
 	}()
 
 	<-sigs
 	bot.StopReceivingUpdates()
 	wg.Wait()
+}
 
+func createCommandByMessage(message *tgbotapi.Message) CommandHandler {
+	chatLang := "ru"
+	log.Printf("[%s] %s", message.From.UserName, message.Text)
+	commandHandler := CommandHandler{
+		ChatID:    message.Chat.ID,
+		Localizer: i18n.NewLocalizer(languageBundle, chatLang, message.From.LanguageCode),
+		Command:   message.Command(),
+		Args:      message.CommandArguments(),
+		Reply:     "",
+	}
+	if !message.IsCommand() {
+		commandHandler.Command = "todo" //todo: get last bot message by message.Chat.ID from redis
+		commandHandler.Args = message.Text
+	}
+	return commandHandler
+}
+
+func handleCommand(commandHandler CommandHandler, bot *tgbotapi.BotAPI, wg *sync.WaitGroup) {
+	msg := commandHandler.createReplyMessage()
+	//todo: save commandHandler.Reply to redis
+	if _, err := bot.Send(msg); err != nil {
+		log.Println(err)
+	}
+	wg.Done()
 }
 
 func (command *CommandHandler) createReplyMessage() (msg tgbotapi.MessageConfig) {
