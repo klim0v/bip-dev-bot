@@ -31,26 +31,18 @@ type Command struct {
 	Reply     string
 }
 
-func formCommand(update tgbotapi.Update, rds *redis.Client) *Command {
-	if update.Message != nil {
-		lastCommandResult := rds.Get("lastCommand:" + strconv.Itoa(int(update.Message.Chat.ID)))
-		lastCommand, err := lastCommandResult.Result()
-		log.Println("get lastCommand", lastCommand)
-		if err != nil {
-			if err == redis.Nil {
-				lastCommand = ""
-			} else {
-				log.Println(err)
-			}
+func formCommand(message *tgbotapi.Message, rds *redis.Client) *Command {
+	lastCommandResult := rds.Get("lastCommand:" + strconv.Itoa(int(message.Chat.ID)))
+	lastCommand, err := lastCommandResult.Result()
+	log.Println("get lastCommand", lastCommand)
+	if err != nil {
+		if err == redis.Nil {
+			lastCommand = ""
+		} else {
+			log.Println(err)
 		}
-		return createCommandByMessage(update.Message, lastCommand)
 	}
-
-	if update.CallbackQuery != nil {
-		//todo: return createCommandByCallbackQuery(update.Message)
-	}
-
-	return nil
+	return createCommandByMessage(message, lastCommand)
 }
 
 func main() {
@@ -91,17 +83,41 @@ func main() {
 
 func handle(rds *redis.Client, update tgbotapi.Update, bot *tgbotapi.BotAPI, wg *sync.WaitGroup) {
 	defer wg.Done()
-	command := formCommand(update, rds)
-	if command == nil {
-		log.Println("command is nil")
+	if update.Message != nil {
+		command := formCommand(update.Message, rds)
+		if command == nil {
+			log.Println("command is nil")
+			return
+		}
+		handleCommand(command, bot)
+		rds.SetNX("lastCommand:"+strconv.Itoa(int(command.ChatID)), command.Reply, 0)
 		return
 	}
-	handleCommand(command, bot)
-	rds.SetNX("lastCommand:"+strconv.Itoa(int(command.ChatID)), command.Reply, 0)
+
+	//bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data))
+	localizer := i18n.NewLocalizer(languageBundle, "ru", update.CallbackQuery.From.LanguageCode)
+	message := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: update.CallbackQuery.Data}))
+	markup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "check_sell"}), "check_sell"), //todo: make constants
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "cancel"),
+		),
+	)
+	message.ReplyMarkup = &markup
+
+	_, err := bot.Send(message)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//todo: save last action to redis
+	return
 }
 
 func createCommandByMessage(message *tgbotapi.Message, lastCommand string) *Command {
-	chatLang := "ru"
+	chatLang := "ru" //todo
 	log.Printf("[%s] %s", message.From.UserName, message.Text)
 	command := &Command{
 		ChatID:    message.Chat.ID,
@@ -131,7 +147,7 @@ func handleCommand(command *Command, bot *tgbotapi.BotAPI) {
 
 func (command *Command) createReplyMessage() tgbotapi.MessageConfig {
 	var msg tgbotapi.MessageConfig
-	log.Println("createReplyMessage:command", command.Command)
+	//log.Println("createReplyMessage:command", command.Command)
 	switch command.Command {
 	case "":
 		fallthrough
@@ -143,16 +159,16 @@ func (command *Command) createReplyMessage() tgbotapi.MessageConfig {
 		)
 		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonURL("1.com", "http://1.com"),
-				tgbotapi.NewInlineKeyboardButtonSwitch("2sw", "open 2"),
-				tgbotapi.NewInlineKeyboardButtonData("3", "3"),
+				tgbotapi.NewInlineKeyboardButtonData("by_coin", "by_coin"),
+				tgbotapi.NewInlineKeyboardButtonData("sell_coin", "sell_coin"),
 			),
 			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("4", "4"),
-				tgbotapi.NewInlineKeyboardButtonData("5", "5"),
-				tgbotapi.NewInlineKeyboardButtonData("6", "6"),
+				tgbotapi.NewInlineKeyboardButtonData("my_orders", "my_orders"),
 			),
 		)
+	case "by_coin":
+	case "sell_coin":
+	case "my_orders":
 	default:
 		return msg
 	}
