@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/go-redis/redis"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -11,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 )
@@ -64,7 +66,7 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	rds := redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_ADDR")})
-	if ping := rds.Ping(); ping.Err() != nil {
+	if err := rds.Ping().Err(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -90,30 +92,139 @@ func handle(rds *redis.Client, update tgbotapi.Update, bot *tgbotapi.BotAPI, wg 
 			return
 		}
 		handleCommand(command, bot)
-		rds.SetNX("lastCommand:"+strconv.Itoa(int(command.ChatID)), command.Reply, 0)
+		rds.Set("lastCommand:"+strconv.Itoa(int(command.ChatID)), command.Reply, 0)
 		return
 	}
 
-	//bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data))
-	localizer := i18n.NewLocalizer(languageBundle, "ru", update.CallbackQuery.From.LanguageCode)
-	message := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: update.CallbackQuery.Data}))
-	markup := tgbotapi.NewInlineKeyboardMarkup(
+	if update.CallbackQuery.Data != "" {
+		fields := strings.Fields(update.CallbackQuery.Data)
+		var args string
+		if len(fields) > 1 {
+			args = strings.Join(fields[1:], " ")
+		}
+		command := Command{
+			ChatID:    update.CallbackQuery.Message.Chat.ID,
+			Localizer: i18n.NewLocalizer(languageBundle, "ru", update.CallbackQuery.From.LanguageCode),
+			Command:   fields[0],
+			Args:      args,
+			Reply:     "",
+		}
+
+		var message tgbotapi.Chattable
+		switch command.Command {
+		case "by_coin":
+			command.Reply = "send_minter_address"
+			msg := tgbotapi.NewEditMessageText(command.ChatID, update.CallbackQuery.Message.MessageID, command.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: command.Reply}))
+			markup := sendMinterAddressMarkup(command.Localizer, minterAddresses())
+			msg.ReplyMarkup = &markup
+			msg.ParseMode = "markdown"
+			message = msg
+		//case strings.HasPrefix(update.CallbackQuery.Data, "send_minter_address") && len(strings.Fields(update.CallbackQuery.Data)) == 2:
+		case "use_minter_address":
+			//todo save command.Args
+
+			command.Reply = "send_email_address"
+			msg := tgbotapi.NewEditMessageText(command.ChatID, update.CallbackQuery.Message.MessageID, command.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: command.Reply}))
+			markup := sendEmailAddressMarkup(command.Localizer, emailAddresses())
+			msg.ReplyMarkup = &markup
+			msg.ParseMode = "markdown"
+			message = msg
+		case "use_email_address":
+			//todo save command.Args
+
+			command.Reply = "send_btc"
+			msg := tgbotapi.NewEditMessageText(command.ChatID, update.CallbackQuery.Message.MessageID,
+				fmt.Sprintf(command.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: command.Reply}), 0.0184, -24.28, 516841, 4.00, btcAddresses()),
+			)
+			markup := sendBTCAddressMarkup(command.Localizer)
+			msg.ReplyMarkup = &markup
+			msg.ParseMode = "markdown"
+			message = msg
+		case "help":
+			command.Reply = "help"
+			msg := tgbotapi.NewEditMessageText(command.ChatID, update.CallbackQuery.Message.MessageID,
+				command.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: command.Reply}),
+			)
+			markup := helpMarkup(command.Localizer)
+			msg.ReplyMarkup = &markup
+			msg.ParseMode = "markdown"
+			message = msg
+		default:
+			return
+		}
+
+		if err := rds.Set("lastCommand:"+strconv.Itoa(int(command.ChatID)), command.Reply, 0).Err(); err != nil {
+			log.Println(err)
+			return
+		}
+
+		_, err := bot.Send(message)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		//todo: save last action to redis
+		return
+	}
+}
+
+func emailAddresses() []string {
+	return []string{"klim0v-sergey@yandex.ru"}
+}
+
+func minterAddresses() []string {
+	return []string{"Mx00000000000000000000000000000987654321"}
+}
+
+func btcAddresses() string {
+	return "1K1AaFAChTdRRE2N4D6Xxz83MYtwFzmiPN"
+}
+
+func helpMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "check_sell"}), "check_sell"), //todo: make constants
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "by_coin"}), "by_coin"),
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "sell_coin"}), "sell_coin"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "cancel"),
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "my_orders"}), "my_orders"),
 		),
 	)
-	message.ReplyMarkup = &markup
+}
 
-	_, err := bot.Send(message)
-	if err != nil {
-		log.Fatal(err)
+func sendBTCAddressMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "check"}), "check_sell"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "by_coin"), //todo get next step from relations map
+		),
+	)
+}
+
+func sendEmailAddressMarkup(localizer *i18n.Localizer, addresses []string) tgbotapi.InlineKeyboardMarkup {
+	var addressesKeyboard [][]tgbotapi.InlineKeyboardButton
+	for _, address := range addresses {
+		addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(address, fmt.Sprintf("use_email_address %s", address))))
 	}
+	addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "by_coin"),
+	))
+	return tgbotapi.NewInlineKeyboardMarkup(addressesKeyboard...)
+}
 
-	//todo: save last action to redis
-	return
+func sendMinterAddressMarkup(localizer *i18n.Localizer, addresses []string) tgbotapi.InlineKeyboardMarkup {
+	var addressesKeyboard [][]tgbotapi.InlineKeyboardButton
+	for _, address := range addresses {
+		addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(address, fmt.Sprintf("use_minter_address %s", address))))
+	}
+	addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "help"),
+	))
+	return tgbotapi.NewInlineKeyboardMarkup(addressesKeyboard...)
 }
 
 func createCommandByMessage(message *tgbotapi.Message, lastCommand string) *Command {
@@ -145,9 +256,7 @@ func handleCommand(command *Command, bot *tgbotapi.BotAPI) {
 	}
 }
 
-func (command *Command) createReplyMessage() tgbotapi.MessageConfig {
-	var msg tgbotapi.MessageConfig
-	//log.Println("createReplyMessage:command", command.Command)
+func (command *Command) createReplyMessage() (msg tgbotapi.MessageConfig) {
 	switch command.Command {
 	case "":
 		fallthrough
@@ -157,20 +266,29 @@ func (command *Command) createReplyMessage() tgbotapi.MessageConfig {
 			command.ChatID,
 			command.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: command.Reply}),
 		)
-		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("by_coin", "by_coin"),
-				tgbotapi.NewInlineKeyboardButtonData("sell_coin", "sell_coin"),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("my_orders", "my_orders"),
-			),
+		markup := helpMarkup(command.Localizer)
+		msg.ReplyMarkup = &markup
+	case "send_minter_address":
+		//todo save and use command.Args
+		command.Reply = "send_email_address"
+		msg = tgbotapi.NewMessage(
+			command.ChatID,
+			command.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: command.Reply}),
 		)
-	case "by_coin":
+		msg.ReplyMarkup = sendMinterAddressMarkup(command.Localizer, emailAddresses())
+	case "send_email_address":
+		//todo save and use command.Args
+		command.Reply = "send_btc"
+		msg = tgbotapi.NewMessage(
+			command.ChatID,
+			fmt.Sprintf(command.Localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: command.Reply}), 0.0184, -24.28, 516841, 4.00, btcAddresses()),
+		)
+		msg.ReplyMarkup = sendBTCAddressMarkup(command.Localizer)
 	case "sell_coin":
 	case "my_orders":
 	default:
 		return msg
 	}
+	msg.ParseMode = "markdown"
 	return msg
 }
