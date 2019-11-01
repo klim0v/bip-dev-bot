@@ -41,17 +41,19 @@ func main() {
 
 	var pgql *sqlx.DB //todo
 
-	languageBundle := i18n.NewBundle(language.English)
-	languageBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	languageBundle.MustLoadMessageFile(filepath.Join(".", "locales", "actions.en.toml"))
-	languageBundle.MustLoadMessageFile(filepath.Join(".", "locales", "actions.ru.toml"))
+	langBundle := i18n.NewBundle(language.English)
+	langBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+	langBundle.MustLoadMessageFile(filepath.Join(".", "locales", "actions.en.toml"))
+	langBundle.MustLoadMessageFile(filepath.Join(".", "locales", "actions.ru.toml"))
 
-	application := service.NewApplication(rds, pgql, languageBundle, log.New(os.Stdout, "app", log.LstdFlags|log.Lshortfile))
+	logger := log.New(os.Stdout, "app", log.LstdFlags|log.Lshortfile)
+
+	application := service.NewApplication(rds, pgql, langBundle, logger)
 
 	var wg sync.WaitGroup
 	go func() {
 		for update := range updates {
-			if update.Message == nil && update.CallbackQuery == nil {
+			if validData(update) {
 				continue
 			}
 			wg.Add(1)
@@ -62,6 +64,12 @@ func main() {
 	<-sigs
 	bot.StopReceivingUpdates()
 	wg.Wait()
+}
+
+func validData(update tgbotapi.Update) bool {
+	return (update.Message == nil || update.Message.From == nil) &&
+		(update.CallbackQuery == nil || update.CallbackQuery.Data == "" ||
+			update.CallbackQuery.Message == nil || update.CallbackQuery.Message.From == nil)
 }
 
 func handle(factory *service.AbstractFactory, bot *tgbotapi.BotAPI, wg *sync.WaitGroup) {
