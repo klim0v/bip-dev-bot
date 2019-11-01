@@ -150,17 +150,18 @@ func (a *AbstractFactory) Log(err error) {
 }
 
 func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
-	if update.CallbackQuery != nil && update.CallbackQuery.Data != "" && update.CallbackQuery.Message != nil {
+	if update.CallbackQuery != nil {
 		fields := strings.Fields(update.CallbackQuery.Data)
 		var args string
 		if len(fields) == 2 {
 			args = fields[1]
 		}
+
 		return &AbstractFactory{
 			factory: &CallbackFactory{
 				Message: Message{
-					chatID:      update.Message.Chat.ID,
-					messageLang: update.Message.From.LanguageCode,
+					chatID:      update.CallbackQuery.Message.Chat.ID,
+					messageLang: update.CallbackQuery.Message.From.LanguageCode,
 					localizer:   nil,
 					reply:       "",
 				},
@@ -173,27 +174,24 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 		}
 	}
 
-	if update.Message != nil {
-		var lastCommand string
-		if !update.Message.IsCommand() {
-			lastCommand = s.LastCommand(update.Message.Chat.ID)
-		}
-		return &AbstractFactory{
-			factory: &CommandFactory{
-				Message: Message{
-					chatID:      update.Message.Chat.ID,
-					messageLang: update.Message.From.LanguageCode,
-					localizer:   nil,
-					reply:       "",
-				},
-				LastMessage: lastCommand,
-				Command:     update.Message.Command(),
-				Args:        update.Message.CommandArguments(),
-				Repository:  NewRepository(s.pgql),
-			},
-			resource: s,
-		}
+	var lastCommand string
+	if !update.Message.IsCommand() {
+		lastCommand = s.LastCommand(update.Message.Chat.ID)
 	}
 
-	return nil
+	return &AbstractFactory{
+		factory: &CommandFactory{
+			Message: Message{
+				chatID:      update.Message.Chat.ID,
+				messageLang: update.Message.From.LanguageCode,
+				localizer:   nil,
+				reply:       "",
+			},
+			LastMessage: lastCommand,
+			Command:     update.Message.Command(),
+			Args:        update.Message.CommandArguments(),
+			Repository:  NewRepository(s.pgql),
+		},
+		resource: s,
+	}
 }
