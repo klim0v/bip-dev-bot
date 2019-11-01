@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
@@ -15,7 +14,7 @@ type CommandFactory struct {
 	Repository  *Repository
 }
 
-func (command *CommandFactory) CreateMessage(*redis.Client) tgbotapi.Chattable {
+func (command *CommandFactory) CreateMessage() tgbotapi.Chattable {
 	var msg tgbotapi.MessageConfig
 	switch command.Command {
 	case "":
