@@ -10,24 +10,6 @@ import (
 	"strings"
 )
 
-func init() {
-	//todo: example
-	var (
-		rds            *redis.Client
-		pgql           *sqlx.DB
-		languageBundle *i18n.Bundle
-		logger         *log.Logger
-	)
-	application := NewApplication(rds, pgql, languageBundle, logger)
-	var update tgbotapi.Update
-	abstractFactory := application.NewFactory(update)
-	abstractFactory.SetLocalizer()
-	abstractFactory.CreateMessage()
-	abstractFactory.SaveArgs()
-	//bot.Send()
-	abstractFactory.SaveReply()
-}
-
 type Application struct {
 	rds            *redis.Client
 	pgql           *sqlx.DB
