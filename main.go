@@ -68,7 +68,13 @@ func handle(factory *service.AbstractFactory, bot *tgbotapi.BotAPI, wg *sync.Wai
 	defer wg.Done()
 	factory.SetLocalizer()
 	message := factory.CreateMessage()
-	factory.SaveArgs()
-	bot.Send(message)
+	if err := factory.SaveArgs(); err != nil {
+		factory.Log(err)
+		return
+	}
+	if _, err := bot.Send(message); err != nil {
+		factory.Log(err)
+		return
+	}
 	factory.SaveReply()
 }

@@ -87,6 +87,10 @@ func (s *Application) LastCommand(chatID int64) string {
 	return lang
 }
 
+func (s *Application) Log(err error) {
+	s.logger.Println(err)
+}
+
 func NewApplication(rds *redis.Client, pgql *sqlx.DB, languageBundle *i18n.Bundle, logger *log.Logger) *Application {
 	return &Application{
 		rds:            rds,
@@ -102,6 +106,7 @@ type Resource interface {
 	SaveReply(chatID int64, reply string)
 	Language(chatID int64) string
 	LastCommand(chatID int64) string
+	Log(error)
 }
 
 type Factory interface {
@@ -111,6 +116,7 @@ type Factory interface {
 	MessageLang() string
 	Reply() string
 	CreateMessage() tgbotapi.Chattable
+	SaveArgs() error
 }
 
 type AbstractFactory struct {
@@ -122,8 +128,8 @@ func (a *AbstractFactory) CreateMessage() tgbotapi.Chattable {
 	return a.factory.CreateMessage()
 }
 
-func (a *AbstractFactory) SaveArgs() {
-	//a.factory.
+func (a *AbstractFactory) SaveArgs() error {
+	return a.factory.SaveArgs()
 }
 
 func (a *AbstractFactory) SaveLanguage(lang string) {
@@ -137,6 +143,10 @@ func (a *AbstractFactory) SaveReply() {
 
 func (a *AbstractFactory) SetLocalizer() {
 	a.factory.SetLocalizer(a.resource.Localizer(a.resource.Language(a.factory.ChatID()), a.factory.MessageLang()))
+}
+
+func (a *AbstractFactory) Log(err error) {
+	a.resource.Log(err)
 }
 
 func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {

@@ -24,7 +24,7 @@ func sendBTCAddressMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMark
 			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "check"}), "check_sell"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "by_coin"), //todo get next step from relations map
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "by_coin"),
 		),
 	)
 }

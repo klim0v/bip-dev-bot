@@ -14,6 +14,21 @@ type CommandFactory struct {
 	Repository  *Repository
 }
 
+func (command *CommandFactory) SaveArgs() error {
+	var err error
+
+	switch command.Command {
+	case "send_minter_address":
+		//todo save and use command.Args
+		return err
+	case "send_email_address":
+		//todo save and use command.Args
+		return err
+	}
+
+	return nil
+}
+
 func (command *CommandFactory) CreateMessage() tgbotapi.Chattable {
 	var msg tgbotapi.MessageConfig
 	switch command.Command {
@@ -27,7 +42,6 @@ func (command *CommandFactory) CreateMessage() tgbotapi.Chattable {
 		)
 		msg.ReplyMarkup = helpMarkup(command.Localizer())
 	case "send_minter_address":
-		//todo save and use command.Args
 		command.Message.reply = "send_email_address"
 		msg = tgbotapi.NewMessage(
 			command.ChatID(),
@@ -35,7 +49,6 @@ func (command *CommandFactory) CreateMessage() tgbotapi.Chattable {
 		)
 		msg.ReplyMarkup = sendEmailAddressMarkup(command.Localizer(), command.Repository.emailAddresses())
 	case "send_email_address":
-		//todo save and use command.Args
 		command.Message.reply = "send_btc"
 		msg = tgbotapi.NewMessage(
 			command.ChatID(),
@@ -43,8 +56,10 @@ func (command *CommandFactory) CreateMessage() tgbotapi.Chattable {
 		)
 		msg.ReplyMarkup = sendBTCAddressMarkup(command.Localizer())
 	default:
+
 		return msg
 	}
 	msg.ParseMode = "markdown"
+
 	return msg
 }
