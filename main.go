@@ -53,9 +53,10 @@ func main() {
 	var wg sync.WaitGroup
 	go func() {
 		for update := range updates {
-			if validData(update) {
+			if isValidData(update) {
 				continue
 			}
+
 			wg.Add(1)
 			go handle(application.NewFactory(update), bot, &wg)
 		}
@@ -66,7 +67,7 @@ func main() {
 	wg.Wait()
 }
 
-func validData(update tgbotapi.Update) bool {
+func isValidData(update tgbotapi.Update) bool {
 	return (update.Message == nil || update.Message.From == nil) &&
 		(update.CallbackQuery == nil || update.CallbackQuery.Data == "" ||
 			update.CallbackQuery.Message == nil || update.CallbackQuery.Message.From == nil)
