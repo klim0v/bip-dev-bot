@@ -173,7 +173,7 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 			concreteFactory = &UseEmailAddressCallbackFactory{CallbackFactory: callbackFactory}
 		case "use_minter_address":
 			concreteFactory = &UseMinterAddressCallbackFactory{CallbackFactory: callbackFactory}
-		case "check":
+		case "check_sell":
 			concreteFactory = &CheckBTCAddressCallbackFactory{CallbackFactory: callbackFactory}
 		default:
 			concreteFactory = &HelpCallbackFactory{CallbackFactory: callbackFactory}
@@ -191,18 +191,31 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 		command = s.LastCommand(update.Message.Chat.ID)
 		commandArguments = update.Message.Text
 	}
-	return &AbstractFactory{
-		factory: &CommandFactory{
-			Message: Message{
-				chatID:      update.Message.Chat.ID,
-				messageLang: update.Message.From.LanguageCode,
-				localizer:   nil,
-				reply:       "",
-			},
-			Command:    command,
-			Args:       commandArguments,
-			Repository: NewRepository(s.rds, s.pgql),
+
+	var concreteFactory Factory
+	commandFactory := CommandFactory{
+		Message: Message{
+			chatID:      update.Message.Chat.ID,
+			messageLang: update.Message.From.LanguageCode,
+			localizer:   nil,
+			reply:       "",
 		},
+		Command:    command,
+		Args:       commandArguments,
+		Repository: NewRepository(s.rds, s.pgql),
+	}
+
+	switch commandFactory.Command {
+	case "send_email_address":
+		concreteFactory = &SendEmailAddressCommandFactory{CommandFactory: commandFactory}
+	case "send_minter_address":
+		concreteFactory = &SendMinterAddressCommandFactory{CommandFactory: commandFactory}
+	default:
+		concreteFactory = &HelpCommandFactory{CommandFactory: commandFactory}
+	}
+
+	return &AbstractFactory{
+		factory:  concreteFactory,
 		resource: s,
 	}
 }

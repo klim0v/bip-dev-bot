@@ -58,16 +58,6 @@ func isValidMinterAddress(address string) bool {
 }
 
 func (callback *UseMinterAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	//if !isValidMinterAddress(callback.Args) {
-	//	callback.Message.reply = "send_minter_address" // todo: may be to move saveReply there and remove this line
-	//	msg := tgbotapi.NewMessage(
-	//		callback.ChatID(),
-	//		callback.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_minter_address_invalid"}),
-	//	)
-	//	msg.ParseMode = "markdown"
-	//	return msg, nil
-	//}
-
 	if err := callback.Repository.saveMinterAddressForBuy(callback.ChatID(), callback.Args); err != nil {
 		return nil, err
 	}
@@ -101,16 +91,6 @@ func isValidEmailAddress(email string) bool {
 }
 
 func (callback *UseEmailAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	//if !isValidEmailAddress(callback.Args) {
-	//	callback.Message.reply = "send_email_address" // todo: may be to move saveReply there and remove this line
-	//	msg := tgbotapi.NewMessage(
-	//		callback.ChatID(),
-	//		callback.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_email_address_invalid"}),
-	//	)
-	//	msg.ParseMode = "markdown"
-	//	return msg, nil
-	//}
-
 	//todo
 
 	callback.Message.reply = "send_btc"
