@@ -156,12 +156,12 @@ func (command *SendCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) 
 		return nil, err
 	}
 
-	command.Message.reply = "send_btc"
+	command.Message.reply = "send_price_coin"
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
-		fmt.Sprintf(command.translate(command.reply), 0.0184, -24.28, 516841, 4.00, command.Repository.btcAddresses()),
+		fmt.Sprintf(command.translate(command.reply)),
 	)
-	msg.ReplyMarkup = sendBTCAddressMarkup(command.Localizer())
+	//msg.ReplyMarkup = todo
 	msg.ParseMode = "markdown"
 	return msg, nil
 }
