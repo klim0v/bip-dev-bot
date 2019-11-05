@@ -19,7 +19,7 @@ type SellCoinCallbackFactory struct {
 }
 
 func (callback *SellCoinCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	callback.Message.reply = "send_coin_name"
+	callback.Message.reply = sendCoinName
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
 	markup := selectCoinNameMarkup(callback.Localizer())
 	msg.ReplyMarkup = &markup
@@ -32,7 +32,7 @@ type BuyCoinCallbackFactory struct {
 }
 
 func (callback *BuyCoinCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	callback.Message.reply = "send_minter_address"
+	callback.Message.reply = sendMinterAddress
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
 	markup := selectMinterAddressMarkup(callback.Localizer(), callback.Repository.minterAddresses())
 	msg.ReplyMarkup = &markup
@@ -45,7 +45,7 @@ type HelpCallbackFactory struct {
 }
 
 func (callback *HelpCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	callback.Message.reply = "help"
+	callback.Message.reply = help
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
 	markup := helpMarkup(callback.Localizer())
 	msg.ReplyMarkup = &markup
@@ -58,16 +58,12 @@ type UseMinterAddressCallbackFactory struct {
 }
 
 func (callback *UseMinterAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	minterAddressID, err := strconv.Atoi(callback.Args)
-	if err != nil {
+
+	if err := callback.Repository.saveMinterAddressForSell(callback.ChatID(), callback.Args); err != nil {
 		return nil, err
 	}
 
-	if err := callback.Repository.saveMinterAddressForSell(callback.ChatID(), minterAddressID); err != nil {
-		return nil, err
-	}
-
-	callback.Message.reply = "send_email_address"
+	callback.Message.reply = sendEmailAddress
 
 	addresses := callback.Repository.emailAddresses()
 
@@ -98,7 +94,7 @@ func (callback *UseEmailAddressCallbackFactory) Answer() (tgbotapi.Chattable, er
 		return nil, err
 	}
 
-	callback.Message.reply = "send_btc"
+	callback.Message.reply = sendDeposit
 
 	sprintf := fmt.Sprintf(callback.translate(callback.reply), 0.0184, -24.28, 516841, 4.00, "1K1AaFAChTdRRE2N4D6Xxz83MYtwFzmiPN")
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, sprintf)

@@ -25,15 +25,22 @@ func (r *Repository) addBitcoinAddress(chatID int64, bitcoinAddress string) (int
 	return 1, nil
 }
 
-func (r *Repository) saveMinterAddressForBuy(chatID int64, minterAddressID int) error {
-	if err := r.rds.Set(fmt.Sprintf("%d:sell:minterAddressID", chatID), minterAddressID, 0).Err(); err != nil {
+func (r *Repository) savePriceForSell(chatID int64, price string) error {
+	if err := r.rds.Set(fmt.Sprintf("%d:sell:price", chatID), price, 0).Err(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *Repository) saveMinterAddressForSell(chatID int64, minterAddressID int) error {
-	if err := r.rds.Set(fmt.Sprintf("%d:buy:minterAddressID", chatID), minterAddressID, 0).Err(); err != nil {
+func (r *Repository) saveMinterAddressForSell(chatID int64, price string) error {
+	if err := r.rds.Set(fmt.Sprintf("%d:sell:price", chatID), price, 0).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) saveCoinNameForSell(chatID int64, coinName string) error {
+	if err := r.rds.Set(fmt.Sprintf("%d:sell:coinName", chatID), coinName, 0).Err(); err != nil {
 		return err
 	}
 	return nil

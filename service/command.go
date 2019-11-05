@@ -54,7 +54,7 @@ type HelpCommandFactory struct {
 }
 
 func (command *HelpCommandFactory) Answer() (tgbotapi.Chattable, error) {
-	command.Message.reply = "help"
+	command.Message.reply = help
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply}),
@@ -69,17 +69,17 @@ type SendMinterAddressCommandFactory struct {
 }
 
 func (command *SendMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, error) {
-	if !isValidEmailAddress(command.Args) {
-		command.Message.reply = "send_email_address" // todo: may be to move saveReply there and remove this line
+	if !isValidMinterAddress(command.Args) {
+		command.Message.reply = sendMinterAddress
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_email_address_invalid"}),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendMinterAddress + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
 		return msg, nil
 	}
 
-	emailID, err := command.Repository.addEmailAddress(command.ChatID(), command.Args)
+	emailID, err := command.Repository.addMinterAddress(command.ChatID(), command.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (command *SendMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, er
 		return nil, err
 	}
 
-	command.Message.reply = "send_email_address"
+	command.Message.reply = sendEmailAddress
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply}),
@@ -104,10 +104,10 @@ type SendEmailAddressCommandFactory struct {
 
 func (command *SendEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	if !isValidEmailAddress(command.Args) {
-		command.Message.reply = "send_email_address" // todo: may be to move saveReply there and remove this line
+		command.Message.reply = sendEmailAddress
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_email_address_invalid"}),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendEmailAddress + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
 		return msg, nil
@@ -138,25 +138,20 @@ type SendCoinNameCommandFactory struct {
 
 func (command *SendCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	if !isValidCoinName(command.Args) {
-		command.Message.reply = "send_minter_address" // todo: may be to move saveReply there and remove this line
+		command.Message.reply = sendPriceCoin
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_minter_address_invalid"}),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendPriceCoin + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
 		return msg, nil
 	}
 
-	minterAddressID, err := command.Repository.addMinterAddress(command.ChatID(), command.Args)
-	if err != nil {
+	if err := command.Repository.saveCoinNameForSell(command.ChatID(), command.Args); err != nil {
 		return nil, err
 	}
 
-	if err := command.Repository.saveMinterAddressForSell(command.ChatID(), minterAddressID); err != nil {
-		return nil, err
-	}
-
-	command.Message.reply = "send_price_coin"
+	command.Message.reply = sendPriceCoin
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		fmt.Sprintf(command.translate(command.reply)),
@@ -171,26 +166,21 @@ type SendPriceCoinCommandFactory struct {
 }
 
 func (command *SendPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
-	if !isValidCoinName(command.Args) {
-		command.Message.reply = "send_price_coin" // todo: may be to move saveReply there and remove this line
-		msg := tgbotapi.NewMessage(
-			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_price_coin_invalid"}),
-		)
-		msg.ParseMode = "markdown"
-		return msg, nil
-	}
+	//if !isValidPriceCoin(command.Args) {
+	//	command.Message.reply = sendPriceCoin
+	//	msg := tgbotapi.NewMessage(
+	//		command.ChatID(),
+	//		command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
+	//	)
+	//	msg.ParseMode = "markdown"
+	//	return msg, nil
+	//}
 
-	bitcoinAddressID, err := command.Repository.addMinterAddress(command.ChatID(), command.Args)
-	if err != nil {
+	if err := command.Repository.savePriceForSell(command.ChatID(), command.Args); err != nil {
 		return nil, err
 	}
 
-	if err := command.Repository.saveMinterAddressForSell(command.ChatID(), bitcoinAddressID); err != nil {
-		return nil, err
-	}
-
-	command.Message.reply = "send_bitcoin"
+	command.Message.reply = sendBitcoin
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		fmt.Sprintf(command.translate(command.reply)),
@@ -206,16 +196,16 @@ type SendBitcoinCommandFactory struct {
 
 func (command *SendBitcoinCommandFactory) Answer() (tgbotapi.Chattable, error) { //todo make []Chattable
 	if !isValidBitcoinAddress(command.Args) {
-		command.Message.reply = "send_bitcoin" // todo: may be to move saveReply there and remove this line
+		command.Message.reply = sendBitcoin
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_bitcoin_invalid"}),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendBitcoin + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
 		return msg, nil
 	}
 
-	//command.Message.reply = "" Отправьте AAA на указанный ниже адрес. todo
+	command.Message.reply = "send_coin"
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		fmt.Sprintf(command.translate(command.reply)),

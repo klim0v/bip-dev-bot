@@ -144,6 +144,23 @@ func (a *AbstractFactory) Log(err error) {
 	a.resource.Log(err)
 }
 
+const (
+	sendCoinName      = "send_coin_name"
+	sendPriceCoin     = "send_price_coin"
+	sendBitcoin       = "send_bitcoin"
+	sendEmailAddress  = "send_email_address"
+	sendMinterAddress = "send_minter_address"
+	sellCoin          = "sell_coin"
+	buyCoin           = "buy_coin"
+	useEmailAddress   = "use_email_address"
+	useMinterAddress  = "use_minter_address"
+	checkSell         = "check_sell"
+	myOrders          = "my_orders"
+	useBitcoinAddress = "use_bitcoin_address"
+	sendDeposit       = "send_deposit"
+	help              = "help"
+)
+
 func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 	if update.CallbackQuery != nil {
 		fields := strings.Fields(update.CallbackQuery.Data)
@@ -167,15 +184,15 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 		}
 
 		switch callbackFactory.Command {
-		case "sell_coin": //todo make constants
+		case sellCoin:
 			concreteFactory = &SellCoinCallbackFactory{CallbackFactory: callbackFactory}
-		case "buy_coin":
+		case buyCoin:
 			concreteFactory = &BuyCoinCallbackFactory{CallbackFactory: callbackFactory}
-		case "use_email_address":
+		case useEmailAddress:
 			concreteFactory = &UseEmailAddressCallbackFactory{CallbackFactory: callbackFactory}
-		case "use_minter_address":
+		case useMinterAddress:
 			concreteFactory = &UseMinterAddressCallbackFactory{CallbackFactory: callbackFactory}
-		case "check_sell":
+		case checkSell:
 			concreteFactory = &CheckBTCAddressCallbackFactory{CallbackFactory: callbackFactory}
 		default:
 			concreteFactory = &HelpCallbackFactory{CallbackFactory: callbackFactory}
@@ -208,15 +225,15 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 	}
 
 	switch commandFactory.Command {
-	case "send_coin_name": //todo make constants
+	case sendCoinName:
 		concreteFactory = &SendCoinNameCommandFactory{CommandFactory: commandFactory}
-	case "send_price_coin":
+	case sendPriceCoin:
 		concreteFactory = &SendPriceCoinCommandFactory{CommandFactory: commandFactory}
-	case "send_bitcoin":
+	case sendBitcoin:
 		concreteFactory = &SendBitcoinCommandFactory{CommandFactory: commandFactory}
-	case "send_email_address":
+	case sendEmailAddress:
 		concreteFactory = &SendEmailAddressCommandFactory{CommandFactory: commandFactory}
-	case "send_minter_address":
+	case sendMinterAddress:
 		concreteFactory = &SendMinterAddressCommandFactory{CommandFactory: commandFactory}
 	default:
 		concreteFactory = &HelpCommandFactory{CommandFactory: commandFactory}
