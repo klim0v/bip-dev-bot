@@ -35,7 +35,7 @@ func (s *Application) saveLanguage(chatID int64, lang string) error {
 }
 
 func (s *Application) SaveReply(chatID int64, lang string) {
-	if err := s.saveLanguage(chatID, lang); err != nil {
+	if err := s.saveReply(chatID, lang); err != nil {
 		s.logger.Println(err)
 	}
 }
@@ -174,11 +174,12 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 		}
 	}
 
-	var lastCommand string
+	command := update.Message.Command()
+	commandArguments := update.Message.CommandArguments()
 	if !update.Message.IsCommand() {
-		lastCommand = s.LastCommand(update.Message.Chat.ID)
+		command = s.LastCommand(update.Message.Chat.ID)
+		commandArguments = update.Message.Text
 	}
-
 	return &AbstractFactory{
 		factory: &CommandFactory{
 			Message: Message{
@@ -187,10 +188,9 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 				localizer:   nil,
 				reply:       "",
 			},
-			LastMessage: lastCommand,
-			Command:     update.Message.Command(),
-			Args:        update.Message.CommandArguments(),
-			Repository:  NewRepository(s.pgql),
+			Command:    command,
+			Args:       commandArguments,
+			Repository: NewRepository(s.pgql),
 		},
 		resource: s,
 	}

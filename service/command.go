@@ -8,10 +8,9 @@ import (
 
 type CommandFactory struct {
 	Message
-	LastMessage string
-	Command     string
-	Args        string
-	Repository  *Repository
+	Command    string
+	Args       string
+	Repository *Repository
 }
 
 func (command *CommandFactory) SaveArgs() error {
