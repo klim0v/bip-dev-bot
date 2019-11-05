@@ -29,7 +29,19 @@ func sendBTCAddressMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMark
 	)
 }
 
-func sendEmailAddressMarkup(localizer *i18n.Localizer, addresses []Address) tgbotapi.InlineKeyboardMarkup {
+func selectBitcoinMarkup(localizer *i18n.Localizer, addresses []Address) tgbotapi.InlineKeyboardMarkup {
+	var addressesKeyboard [][]tgbotapi.InlineKeyboardButton
+	for _, address := range addresses {
+		addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(address.Value, fmt.Sprintf("use_bitcoin_address %d", address.ID))))
+	}
+	addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "send_price_coin"),
+	))
+	return tgbotapi.NewInlineKeyboardMarkup(addressesKeyboard...)
+}
+
+func selectEmailAddressMarkup(localizer *i18n.Localizer, addresses []Address) tgbotapi.InlineKeyboardMarkup {
 	var addressesKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, address := range addresses {
 		addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
@@ -41,7 +53,7 @@ func sendEmailAddressMarkup(localizer *i18n.Localizer, addresses []Address) tgbo
 	return tgbotapi.NewInlineKeyboardMarkup(addressesKeyboard...)
 }
 
-func sendMinterAddressMarkup(localizer *i18n.Localizer, addresses []Address) tgbotapi.InlineKeyboardMarkup {
+func selectMinterAddressMarkup(localizer *i18n.Localizer, addresses []Address) tgbotapi.InlineKeyboardMarkup {
 	var addressesKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, address := range addresses {
 		addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
@@ -51,4 +63,12 @@ func sendMinterAddressMarkup(localizer *i18n.Localizer, addresses []Address) tgb
 		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "help"),
 	))
 	return tgbotapi.NewInlineKeyboardMarkup(addressesKeyboard...)
+}
+
+func selectCoinNameMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMarkup {
+	var keyboards [][]tgbotapi.InlineKeyboardButton
+	keyboards = append(keyboards, tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "help"),
+	))
+	return tgbotapi.NewInlineKeyboardMarkup(keyboards...)
 }

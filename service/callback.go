@@ -3,11 +3,8 @@ package service
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"regexp"
-	"strings"
+	"strconv"
 )
-
-var matchEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 type CallbackFactory struct {
 	Message
@@ -17,6 +14,19 @@ type CallbackFactory struct {
 	Repository      *Repository
 }
 
+type SellCoinCallbackFactory struct {
+	CallbackFactory
+}
+
+func (callback *SellCoinCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+	callback.Message.reply = "send_coin_name"
+	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
+	markup := selectCoinNameMarkup(callback.Localizer())
+	msg.ReplyMarkup = &markup
+	msg.ParseMode = "markdown"
+	return msg, nil
+}
+
 type BuyCoinCallbackFactory struct {
 	CallbackFactory
 }
@@ -24,7 +34,7 @@ type BuyCoinCallbackFactory struct {
 func (callback *BuyCoinCallbackFactory) Answer() (tgbotapi.Chattable, error) {
 	callback.Message.reply = "send_minter_address"
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
-	markup := sendMinterAddressMarkup(callback.Localizer(), callback.Repository.minterAddresses())
+	markup := selectMinterAddressMarkup(callback.Localizer(), callback.Repository.minterAddresses())
 	msg.ReplyMarkup = &markup
 	msg.ParseMode = "markdown"
 	return msg, nil
@@ -47,18 +57,13 @@ type UseMinterAddressCallbackFactory struct {
 	CallbackFactory
 }
 
-func isValidMinterAddress(address string) bool {
-	address = strings.TrimSpace(address)
-
-	if address == "Mx00000000000000000000000000000000000001" {
-		return false
+func (callback *UseMinterAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+	minterAddressID, err := strconv.Atoi(callback.Args)
+	if err != nil {
+		return nil, err
 	}
 
-	return len(address) == 42 && address[:2] != "Mx"
-}
-
-func (callback *UseMinterAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	if err := callback.Repository.saveMinterAddressForBuy(callback.ChatID(), callback.Args); err != nil {
+	if err := callback.Repository.saveMinterAddressForSell(callback.ChatID(), minterAddressID); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +78,7 @@ func (callback *UseMinterAddressCallbackFactory) Answer() (tgbotapi.Chattable, e
 		msg = tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
 	}
 
-	markup := sendEmailAddressMarkup(callback.Localizer(), addresses)
+	markup := selectEmailAddressMarkup(callback.Localizer(), addresses)
 	msg.ReplyMarkup = &markup
 	msg.ParseMode = "markdown"
 	return msg, nil
@@ -83,19 +88,19 @@ type UseEmailAddressCallbackFactory struct {
 	CallbackFactory
 }
 
-func isValidEmailAddress(email string) bool {
-	if !matchEmail.MatchString(email) || email == "mail@example.com" {
-		return false
-	}
-	return true
-}
-
 func (callback *UseEmailAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	//todo
+	emailAddressID, err := strconv.Atoi(callback.Args)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := callback.Repository.saveEmailAddressForBuy(callback.ChatID(), emailAddressID); err != nil {
+		return nil, err
+	}
 
 	callback.Message.reply = "send_btc"
 
-	sprintf := fmt.Sprintf(callback.translate(callback.reply), 0.0184, -24.28, 516841, 4.00, callback.Repository.btcAddresses())
+	sprintf := fmt.Sprintf(callback.translate(callback.reply), 0.0184, -24.28, 516841, 4.00, "1K1AaFAChTdRRE2N4D6Xxz83MYtwFzmiPN")
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, sprintf)
 	markup := sendBTCAddressMarkup(callback.Localizer())
 	msg.ReplyMarkup = &markup
