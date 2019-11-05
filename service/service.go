@@ -158,6 +158,7 @@ const (
 	myOrders          = "my_orders"
 	useBitcoinAddress = "use_bitcoin_address"
 	sendDeposit       = "send_deposit"
+	sendCoin          = "send_coin"
 	help              = "help"
 )
 
@@ -185,7 +186,7 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 
 		switch callbackFactory.Command {
 		case sellCoin:
-			concreteFactory = &SellCoinCallbackFactory{CallbackFactory: callbackFactory}
+			concreteFactory = &SellCoinNameCallbackFactory{CallbackFactory: callbackFactory}
 		case buyCoin:
 			concreteFactory = &BuyCoinCallbackFactory{CallbackFactory: callbackFactory}
 		case useEmailAddress:
@@ -194,6 +195,10 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 			concreteFactory = &UseMinterAddressCallbackFactory{CallbackFactory: callbackFactory}
 		case checkSell:
 			concreteFactory = &CheckBTCAddressCallbackFactory{CallbackFactory: callbackFactory}
+		case sendCoin:
+			concreteFactory = &SellCoinNameCallbackFactory{CallbackFactory: callbackFactory}
+		case useBitcoinAddress:
+			concreteFactory = &UseBitcoinAddressCallbackFactory{CallbackFactory: callbackFactory}
 		default:
 			concreteFactory = &HelpCallbackFactory{CallbackFactory: callbackFactory}
 		}

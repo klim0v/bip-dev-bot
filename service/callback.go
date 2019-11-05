@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"strconv"
 )
 
@@ -14,11 +15,11 @@ type CallbackFactory struct {
 	Repository      *Repository
 }
 
-type SellCoinCallbackFactory struct {
+type SellCoinNameCallbackFactory struct {
 	CallbackFactory
 }
 
-func (callback *SellCoinCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+func (callback *SellCoinNameCallbackFactory) Answer() (tgbotapi.Chattable, error) {
 	callback.Message.reply = sendCoinName
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
 	markup := selectCoinNameMarkup(callback.Localizer())
@@ -109,6 +110,30 @@ type CheckBTCAddressCallbackFactory struct {
 }
 
 func (callback *CheckBTCAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	//todo
 	return nil, nil
+}
+
+type UseBitcoinAddressCallbackFactory struct {
+	CallbackFactory
+}
+
+func (callback *UseBitcoinAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+	if !isValidBitcoinAddress(callback.Args) {
+		callback.Message.reply = useBitcoinAddress
+		msg := tgbotapi.NewMessage(
+			callback.ChatID(),
+			callback.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: callback.Message.reply + "_invalid"}),
+		)
+		msg.ParseMode = "markdown"
+		return msg, nil
+	}
+
+	callback.Message.reply = sendDeposit
+	msg := tgbotapi.NewMessage(
+		callback.ChatID(),
+		fmt.Sprintf(callback.translate(callback.reply), "BIP", "BIP", "www.example.com"),
+	)
+	//msg.ReplyMarkup = todo
+	msg.ParseMode = "markdown"
+	return msg, nil
 }

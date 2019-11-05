@@ -11,6 +11,10 @@ import (
 var matchCoinName = regexp.MustCompile("^[0-9-A-Z-a-z]{3,10}$")
 var matchEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
+func isValidPriceCoin(address string) bool {
+	//todo
+	return true
+}
 func isValidMinterAddress(address string) bool {
 	address = strings.TrimSpace(address)
 
@@ -28,17 +32,15 @@ func isValidEmailAddress(email string) bool {
 	return true
 }
 
-func isValidCoinName(email string) bool {
-	if !matchCoinName.MatchString(email) {
+func isValidCoinName(coinName string) bool {
+	if !matchCoinName.MatchString(coinName) {
 		return false
 	}
 	return true
 }
 
-func isValidBitcoinAddress(email string) bool {
-	if !matchCoinName.MatchString(email) {
-		return false
-	}
+func isValidBitcoinAddress(address string) bool {
+	//todo
 	return true
 }
 
@@ -73,7 +75,7 @@ func (command *SendMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, er
 		command.Message.reply = sendMinterAddress
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendMinterAddress + "_invalid"}),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
 		return msg, nil
@@ -107,7 +109,7 @@ func (command *SendEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, err
 		command.Message.reply = sendEmailAddress
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendEmailAddress + "_invalid"}),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
 		return msg, nil
@@ -141,7 +143,7 @@ func (command *SendCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) 
 		command.Message.reply = sendCoinName
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendPriceCoin + "_invalid"}),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
 		return msg, nil
@@ -166,15 +168,15 @@ type SendPriceCoinCommandFactory struct {
 }
 
 func (command *SendPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
-	//if !isValidPriceCoin(command.Args) {
-	//	command.Message.reply = sendPriceCoin
-	//	msg := tgbotapi.NewMessage(
-	//		command.ChatID(),
-	//		command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
-	//	)
-	//	msg.ParseMode = "markdown"
-	//	return msg, nil
-	//}
+	if !isValidPriceCoin(command.Args) {
+		command.Message.reply = sendPriceCoin
+		msg := tgbotapi.NewMessage(
+			command.ChatID(),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
+		)
+		msg.ParseMode = "markdown"
+		return msg, nil
+	}
 
 	if err := command.Repository.savePriceForSell(command.ChatID(), command.Args); err != nil {
 		return nil, err
@@ -199,7 +201,7 @@ func (command *SendBitcoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
 		command.Message.reply = sendBitcoin
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
-			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendBitcoin + "_invalid"}),
+			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
 		return msg, nil
@@ -208,7 +210,7 @@ func (command *SendBitcoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	command.Message.reply = "send_coin"
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
-		fmt.Sprintf(command.translate(command.reply), "BIP", "www.example.com"),
+		fmt.Sprintf(command.translate(command.reply), "BIP", "BIP", "www.example.com"),
 	)
 	//msg.ReplyMarkup = todo
 	msg.ParseMode = "markdown"
