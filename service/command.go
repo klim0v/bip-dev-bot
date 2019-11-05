@@ -138,7 +138,7 @@ type SendCoinNameCommandFactory struct {
 
 func (command *SendCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	if !isValidCoinName(command.Args) {
-		command.Message.reply = sendPriceCoin
+		command.Message.reply = sendCoinName
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: sendPriceCoin + "_invalid"}),
@@ -208,7 +208,7 @@ func (command *SendBitcoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	command.Message.reply = "send_coin"
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
-		fmt.Sprintf(command.translate(command.reply)),
+		fmt.Sprintf(command.translate(command.reply), "BIP", "www.example.com"),
 	)
 	//msg.ReplyMarkup = todo
 	msg.ParseMode = "markdown"
