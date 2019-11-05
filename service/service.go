@@ -167,7 +167,7 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 		}
 
 		switch callbackFactory.Command {
-		case "sell_coin":
+		case "sell_coin": //todo make constants
 			concreteFactory = &SellCoinCallbackFactory{CallbackFactory: callbackFactory}
 		case "buy_coin":
 			concreteFactory = &BuyCoinCallbackFactory{CallbackFactory: callbackFactory}
@@ -208,7 +208,7 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 	}
 
 	switch commandFactory.Command {
-	case "send_coin_name":
+	case "send_coin_name": //todo make constants
 		concreteFactory = &SendCoinNameCommandFactory{CommandFactory: commandFactory}
 	case "send_price_coin":
 		concreteFactory = &SendPriceCoinCommandFactory{CommandFactory: commandFactory}
