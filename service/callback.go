@@ -3,7 +3,11 @@ package service
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"regexp"
+	"strings"
 )
+
+var matchEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 type CallbackFactory struct {
 	Message
@@ -13,64 +17,117 @@ type CallbackFactory struct {
 	Repository      *Repository
 }
 
-func (callback *CallbackFactory) SaveArgs() error {
-	var err error
-
-	switch callback.Command {
-	case "use_minter_address":
-		//todo save and use command.Args
-		return err
-	case "use_email_address":
-		//todo save and use command.Args
-		return err
-	}
-
-	return nil
+type BuyCoinCallbackFactory struct {
+	CallbackFactory
 }
 
-func (callback *CallbackFactory) CreateMessage() tgbotapi.Chattable {
-	var message tgbotapi.Chattable
-	switch callback.Command {
-	case "by_coin":
-		callback.Message.reply = "send_minter_address"
+func (callback *BuyCoinCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+	callback.Message.reply = "send_minter_address"
+	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
+	markup := sendMinterAddressMarkup(callback.Localizer(), callback.Repository.minterAddresses())
+	msg.ReplyMarkup = &markup
+	msg.ParseMode = "markdown"
+	return msg, nil
+}
 
-		msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translateReply())
-		markup := sendMinterAddressMarkup(callback.Localizer(), callback.Repository.minterAddresses())
-		msg.ReplyMarkup = &markup
-		msg.ParseMode = "markdown"
-		message = msg
+type HelpCallbackFactory struct {
+	CallbackFactory
+}
 
-	case "use_minter_address":
-		callback.Message.reply = "send_email_address"
+func (callback *HelpCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+	callback.Message.reply = "help"
+	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
+	markup := helpMarkup(callback.Localizer())
+	msg.ReplyMarkup = &markup
+	msg.ParseMode = "markdown"
+	return msg, nil
+}
 
-		msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translateReply())
-		markup := sendEmailAddressMarkup(callback.Localizer(), callback.Repository.emailAddresses())
-		msg.ReplyMarkup = &markup
-		msg.ParseMode = "markdown"
-		message = msg
+type UseMinterAddressCallbackFactory struct {
+	CallbackFactory
+}
 
-	case "use_email_address":
-		callback.Message.reply = "send_btc"
+func isValidMinterAddress(address string) bool {
+	address = strings.TrimSpace(address)
 
-		sprintf := fmt.Sprintf(callback.translateReply(), 0.0184, -24.28, 516841, 4.00, callback.Repository.btcAddresses())
-		msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, sprintf)
-		markup := sendBTCAddressMarkup(callback.Localizer())
-		msg.ReplyMarkup = &markup
-		msg.ParseMode = "markdown"
-		message = msg
-
-	case "help":
-		callback.Message.reply = "help"
-
-		msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translateReply())
-		markup := helpMarkup(callback.Localizer())
-		msg.ReplyMarkup = &markup
-		msg.ParseMode = "markdown"
-		message = msg
-
-	default:
-		return nil
+	if address == "Mx00000000000000000000000000000000000001" {
+		return false
 	}
 
-	return message
+	return len(address) == 42 && address[:2] != "Mx"
+}
+
+func (callback *UseMinterAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+	//if !isValidMinterAddress(callback.Args) {
+	//	callback.Message.reply = "send_minter_address" // todo: may be to move saveReply there and remove this line
+	//	msg := tgbotapi.NewMessage(
+	//		callback.ChatID(),
+	//		callback.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_minter_address_invalid"}),
+	//	)
+	//	msg.ParseMode = "markdown"
+	//	return msg, nil
+	//}
+
+	if err := callback.Repository.saveMinterAddressForBuy(callback.ChatID(), callback.Args); err != nil {
+		return nil, err
+	}
+
+	callback.Message.reply = "send_email_address"
+
+	addresses := callback.Repository.emailAddresses()
+
+	var msg tgbotapi.EditMessageTextConfig
+	if len(addresses) == 0 {
+		msg = tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate("new_email"))
+	} else {
+		msg = tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
+	}
+
+	markup := sendEmailAddressMarkup(callback.Localizer(), addresses)
+	msg.ReplyMarkup = &markup
+	msg.ParseMode = "markdown"
+	return msg, nil
+}
+
+type UseEmailAddressCallbackFactory struct {
+	CallbackFactory
+}
+
+func isValidEmailAddress(email string) bool {
+	if !matchEmail.MatchString(email) || email == "mail@example.com" {
+		return false
+	}
+	return true
+}
+
+func (callback *UseEmailAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+	//if !isValidEmailAddress(callback.Args) {
+	//	callback.Message.reply = "send_email_address" // todo: may be to move saveReply there and remove this line
+	//	msg := tgbotapi.NewMessage(
+	//		callback.ChatID(),
+	//		callback.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: "send_email_address_invalid"}),
+	//	)
+	//	msg.ParseMode = "markdown"
+	//	return msg, nil
+	//}
+
+	//todo
+
+	callback.Message.reply = "send_btc"
+
+	sprintf := fmt.Sprintf(callback.translate(callback.reply), 0.0184, -24.28, 516841, 4.00, callback.Repository.btcAddresses())
+	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, sprintf)
+	markup := sendBTCAddressMarkup(callback.Localizer())
+	msg.ReplyMarkup = &markup
+	msg.ParseMode = "markdown"
+	return msg, nil
+}
+
+type CheckBTCAddressCallbackFactory struct {
+	CallbackFactory
+}
+
+func (callback *CheckBTCAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+	//todo
+	return nil, nil
 }

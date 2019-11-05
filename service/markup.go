@@ -9,7 +9,7 @@ import (
 func helpMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "by_coin"}), "by_coin"),
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "buy_coin"}), "buy_coin"),
 			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "sell_coin"}), "sell_coin"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
@@ -24,28 +24,28 @@ func sendBTCAddressMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMark
 			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "check"}), "check_sell"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "by_coin"),
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "buy_coin"),
 		),
 	)
 }
 
-func sendEmailAddressMarkup(localizer *i18n.Localizer, addresses []string) tgbotapi.InlineKeyboardMarkup {
+func sendEmailAddressMarkup(localizer *i18n.Localizer, addresses []Address) tgbotapi.InlineKeyboardMarkup {
 	var addressesKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, address := range addresses {
 		addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(address, fmt.Sprintf("use_email_address %s", address))))
+			tgbotapi.NewInlineKeyboardButtonData(address.Value, fmt.Sprintf("use_email_address %d", address.ID))))
 	}
 	addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "by_coin"),
+		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "buy_coin"),
 	))
 	return tgbotapi.NewInlineKeyboardMarkup(addressesKeyboard...)
 }
 
-func sendMinterAddressMarkup(localizer *i18n.Localizer, addresses []string) tgbotapi.InlineKeyboardMarkup {
+func sendMinterAddressMarkup(localizer *i18n.Localizer, addresses []Address) tgbotapi.InlineKeyboardMarkup {
 	var addressesKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, address := range addresses {
 		addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(address, fmt.Sprintf("use_minter_address %s", address))))
+			tgbotapi.NewInlineKeyboardButtonData(address.Value, fmt.Sprintf("use_minter_address %d", address.ID))))
 	}
 	addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
 		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), "help"),

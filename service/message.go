@@ -37,6 +37,6 @@ func (message *Message) MessageLang() string {
 	return message.messageLang
 }
 
-func (message *Message) translateReply() string {
-	return message.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: message.reply})
+func (message *Message) translate(text string) string {
+	return message.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: text})
 }

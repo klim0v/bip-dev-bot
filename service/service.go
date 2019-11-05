@@ -115,8 +115,7 @@ type Factory interface {
 	Localizer() *i18n.Localizer
 	MessageLang() string
 	Reply() string
-	CreateMessage() tgbotapi.Chattable
-	SaveArgs() error
+	Answer() (tgbotapi.Chattable, error)
 }
 
 type AbstractFactory struct {
@@ -124,12 +123,8 @@ type AbstractFactory struct {
 	resource Resource
 }
 
-func (a *AbstractFactory) CreateMessage() tgbotapi.Chattable {
-	return a.factory.CreateMessage()
-}
-
-func (a *AbstractFactory) SaveArgs() error {
-	return a.factory.SaveArgs()
+func (a *AbstractFactory) CreateAnswer() (tgbotapi.Chattable, error) {
+	return a.factory.Answer()
 }
 
 func (a *AbstractFactory) SaveLanguage(lang string) {
@@ -157,19 +152,35 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 			args = fields[1]
 		}
 
-		return &AbstractFactory{
-			factory: &CallbackFactory{
-				Message: Message{
-					chatID:      update.CallbackQuery.Message.Chat.ID,
-					messageLang: update.CallbackQuery.Message.From.LanguageCode,
-					localizer:   nil,
-					reply:       "",
-				},
-				MessageUpdateID: update.CallbackQuery.Message.MessageID,
-				Command:         fields[0],
-				Args:            args,
-				Repository:      NewRepository(s.pgql),
+		var concreteFactory Factory
+		callbackFactory := CallbackFactory{
+			Message: Message{
+				chatID:      update.CallbackQuery.Message.Chat.ID,
+				messageLang: update.CallbackQuery.Message.From.LanguageCode,
+				localizer:   nil,
+				reply:       "",
 			},
+			MessageUpdateID: update.CallbackQuery.Message.MessageID,
+			Command:         fields[0],
+			Args:            args,
+			Repository:      NewRepository(s.rds, s.pgql),
+		}
+
+		switch callbackFactory.Command {
+		case "buy_coin":
+			concreteFactory = &BuyCoinCallbackFactory{CallbackFactory: callbackFactory}
+		case "use_email_address":
+			concreteFactory = &UseEmailAddressCallbackFactory{CallbackFactory: callbackFactory}
+		case "use_minter_address":
+			concreteFactory = &UseMinterAddressCallbackFactory{CallbackFactory: callbackFactory}
+		case "check":
+			concreteFactory = &CheckBTCAddressCallbackFactory{CallbackFactory: callbackFactory}
+		default:
+			concreteFactory = &HelpCallbackFactory{CallbackFactory: callbackFactory}
+		}
+
+		return &AbstractFactory{
+			factory:  concreteFactory,
 			resource: s,
 		}
 	}
@@ -190,7 +201,7 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 			},
 			Command:    command,
 			Args:       commandArguments,
-			Repository: NewRepository(s.pgql),
+			Repository: NewRepository(s.rds, s.pgql),
 		},
 		resource: s,
 	}
