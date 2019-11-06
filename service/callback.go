@@ -19,49 +19,64 @@ type SellCoinCallbackFactory struct {
 	CallbackFactory
 }
 
-func (callback *SellCoinCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+func (callback *SellCoinCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
 	callback.Message.reply = enterCoinName
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
 	markup := selectCoinNameMarkup(callback.Localizer())
 	msg.ReplyMarkup = &markup
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type BuyCoinCallbackFactory struct {
 	CallbackFactory
 }
 
-func (callback *BuyCoinCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+func (callback *BuyCoinCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
 	callback.Message.reply = selectMinterAddress
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
 	markup := selectMinterAddressMarkup(callback.Localizer(), callback.Repository.minterAddresses())
 	msg.ReplyMarkup = &markup
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type HelpCallbackFactory struct {
 	CallbackFactory
 }
 
-func (callback *HelpCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+func (callback *HelpCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
 	callback.Message.reply = help
 	msg := tgbotapi.NewEditMessageText(callback.ChatID(), callback.MessageUpdateID, callback.translate(callback.reply))
 	markup := helpMarkup(callback.Localizer())
 	msg.ReplyMarkup = &markup
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type UseMinterAddressCallbackFactory struct {
 	CallbackFactory
 }
 
-func (callback *UseMinterAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+func (callback *UseMinterAddressCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
 
 	if err := callback.Repository.saveMinterAddressForSell(callback.ChatID(), callback.Args); err != nil {
-		return nil, err
+		return err
 	}
 
 	callback.Message.reply = selectEmailAddress
@@ -78,21 +93,26 @@ func (callback *UseMinterAddressCallbackFactory) Answer() (tgbotapi.Chattable, e
 	markup := selectEmailAddressMarkup(callback.Localizer(), addresses)
 	msg.ReplyMarkup = &markup
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type UseEmailAddressCallbackFactory struct {
 	CallbackFactory
 }
 
-func (callback *UseEmailAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+func (callback *UseEmailAddressCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
 	emailAddressID, err := strconv.Atoi(callback.Args)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := callback.Repository.saveEmailAddressForBuy(callback.ChatID(), emailAddressID); err != nil {
-		return nil, err
+		return err
 	}
 
 	callback.Message.reply = sendDepositForBuyBIP
@@ -102,22 +122,35 @@ func (callback *UseEmailAddressCallbackFactory) Answer() (tgbotapi.Chattable, er
 	markup := sendBTCAddressMarkup(callback.Localizer())
 	msg.ReplyMarkup = &markup
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type CheckSellCallbackFactory struct {
 	CallbackFactory
+	QueryID string
 }
 
-func (callback *CheckSellCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	return nil, nil
+func (callback *CheckSellCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
+	callback.Message.reply = waitDepositCoin
+	msg := tgbotapi.NewCallbackWithAlert(callback.QueryID, fmt.Sprintf(callback.translate(callback.reply), "BIP"))
+
+	if _, err := bot.AnswerCallbackQuery(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type UseBitcoinAddressCallbackFactory struct {
 	CallbackFactory
 }
 
-func (callback *UseBitcoinAddressCallbackFactory) Answer() (tgbotapi.Chattable, error) {
+func (callback *UseBitcoinAddressCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
 	if !isValidBitcoinAddress(callback.Args) {
 		callback.Message.reply = useBitcoinAddress
 		msg := tgbotapi.NewMessage(
@@ -125,24 +158,54 @@ func (callback *UseBitcoinAddressCallbackFactory) Answer() (tgbotapi.Chattable, 
 			callback.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: callback.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
-		return msg, nil
+
+		if _, err := bot.Send(msg); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
+	link := "www.example.com"
+
 	callback.Message.reply = sendYourCoins
-	msg := tgbotapi.NewMessage(
+	msg1 := tgbotapi.NewMessage(
 		callback.ChatID(),
 		fmt.Sprintf(callback.translate(callback.reply), "BIP", "BIP", "www.example.com"),
 	)
-	//msg.ReplyMarkup = todo
-	msg.ParseMode = "markdown"
-	return msg, nil
+	msg1.ReplyMarkup = shareMarkup(callback.Localizer(), link)
+	msg1.ParseMode = "markdown"
+
+	if _, err := bot.Send(msg1); err != nil {
+		return err
+	}
+
+	msg2 := tgbotapi.NewMessage(
+		callback.ChatID(),
+		"`Mx36f2a491683f7667006f9208bfd6220d551c05fd`",
+	)
+	msg2.ReplyMarkup = sendYourCoinsMarkup(callback.Localizer())
+	msg2.ParseMode = "markdown"
+
+	if _, err := bot.Send(msg2); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-type ToDoCallbackFactory struct {
+type CheckSendDepositCallbackFactory struct {
 	CallbackFactory
+	QueryID string
 }
 
-func (callback *ToDoCallbackFactory) Answer() (tgbotapi.Chattable, error) {
-	panic("todo")
-	return nil, nil
+func (callback *CheckSendDepositCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
+	callback.Message.reply = waitDepositCoin
+	msg := tgbotapi.NewCallbackWithAlert(callback.QueryID, fmt.Sprintf(callback.translate(callback.reply), "BIP"))
+
+	if _, err := bot.AnswerCallbackQuery(msg); err != nil {
+		return err
+	}
+
+	return nil
 }

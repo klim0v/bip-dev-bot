@@ -29,6 +29,25 @@ func sendBTCAddressMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMark
 	)
 }
 
+func sendYourCoinsMarkup(localizer *i18n.Localizer) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "check"}), checkSell),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), enterPriceCoin),
+		),
+	)
+}
+
+func shareMarkup(localizer *i18n.Localizer, link string) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonSwitch(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "share"}), link),
+		),
+	)
+}
+
 func selectBitcoinMarkup(localizer *i18n.Localizer, addresses []Address) tgbotapi.InlineKeyboardMarkup {
 	var addressesKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, address := range addresses {

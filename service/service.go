@@ -115,7 +115,7 @@ type Factory interface {
 	Localizer() *i18n.Localizer
 	MessageLang() string
 	Reply() string
-	Answer() (tgbotapi.Chattable, error)
+	Answer(*tgbotapi.BotAPI) error
 }
 
 type AbstractFactory struct {
@@ -123,8 +123,8 @@ type AbstractFactory struct {
 	resource Resource
 }
 
-func (a *AbstractFactory) CreateAnswer() (tgbotapi.Chattable, error) {
-	return a.factory.Answer()
+func (a *AbstractFactory) Answer(bot *tgbotapi.BotAPI) error {
+	return a.factory.Answer(bot)
 }
 
 func (a *AbstractFactory) SaveLanguage(lang string) {
@@ -148,6 +148,7 @@ const (
 	checkSendDeposit     = "check_send_deposit"
 	sendDepositForBuyBIP = "send_deposit"
 	buyCoin              = "buy_coin"
+	waitDepositBtc       = "wait_deposit_btc"
 
 	selectEmailAddress   = "select_email_address"
 	selectMinterAddress  = "select_minter_address"
@@ -162,12 +163,13 @@ const (
 	sellCoin       = "sell_coin"
 	enterCoinName  = "enter_coin_name"
 	enterPriceCoin = "enter_price_coin"
+	checkSell      = "check_sell"
 
-	checkSell = "check_sell"
-	myOrders  = "my_orders"
+	myOrders = "my_orders"
 
-	sendYourCoins = "send_your_coins"
-	help          = "help"
+	sendYourCoins   = "send_your_coins"
+	help            = "help"
+	waitDepositCoin = "wait_deposit_coin"
 )
 
 func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
@@ -194,7 +196,7 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 
 		switch callbackFactory.Command {
 		case checkSendDeposit:
-			concreteFactory = &ToDoCallbackFactory{CallbackFactory: callbackFactory}
+			concreteFactory = &CheckSendDepositCallbackFactory{CallbackFactory: callbackFactory, QueryID: update.CallbackQuery.ID}
 		case sellCoin:
 			concreteFactory = &SellCoinCallbackFactory{CallbackFactory: callbackFactory}
 		case buyCoin:
@@ -204,7 +206,7 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 		case useMinterAddress:
 			concreteFactory = &UseMinterAddressCallbackFactory{CallbackFactory: callbackFactory}
 		case checkSell:
-			concreteFactory = &CheckSellCallbackFactory{CallbackFactory: callbackFactory}
+			concreteFactory = &CheckSellCallbackFactory{CallbackFactory: callbackFactory, QueryID: update.CallbackQuery.ID}
 		case useBitcoinAddress:
 			concreteFactory = &UseBitcoinAddressCallbackFactory{CallbackFactory: callbackFactory}
 		default:

@@ -76,12 +76,8 @@ func isValidData(update tgbotapi.Update) bool {
 func handle(factory *service.AbstractFactory, bot *tgbotapi.BotAPI, wg *sync.WaitGroup) {
 	defer wg.Done()
 	factory.SetLocalizer()
-	message, err := factory.CreateAnswer()
+	err := factory.Answer(bot)
 	if err != nil {
-		factory.Log(err)
-		return
-	}
-	if _, err := bot.Send(message); err != nil {
 		factory.Log(err)
 		return
 	}

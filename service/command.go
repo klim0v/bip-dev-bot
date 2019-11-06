@@ -55,7 +55,7 @@ type HelpCommandFactory struct {
 	CommandFactory
 }
 
-func (command *HelpCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *HelpCommandFactory) Answer(bot *tgbotapi.BotAPI) error {
 	command.Message.reply = help
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
@@ -63,14 +63,19 @@ func (command *HelpCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	)
 	msg.ReplyMarkup = helpMarkup(command.Localizer())
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type SelectMinterAddressCommandFactory struct {
 	CommandFactory
 }
 
-func (command *SelectMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *SelectMinterAddressCommandFactory) Answer(bot *tgbotapi.BotAPI) error {
 	if !isValidMinterAddress(command.Args) {
 		command.Message.reply = selectMinterAddress
 		msg := tgbotapi.NewMessage(
@@ -78,16 +83,21 @@ func (command *SelectMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, 
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
-		return msg, nil
+
+		if _, err := bot.Send(msg); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	emailID, err := command.Repository.addMinterAddress(command.ChatID(), command.Args)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := command.Repository.saveEmailAddressForBuy(command.ChatID(), emailID); err != nil {
-		return nil, err
+		return err
 	}
 
 	command.Message.reply = selectEmailAddress
@@ -97,14 +107,19 @@ func (command *SelectMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, 
 	)
 	msg.ReplyMarkup = selectEmailAddressMarkup(command.Localizer(), command.Repository.emailAddresses())
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type SelectEmailAddressCommandFactory struct {
 	CommandFactory
 }
 
-func (command *SelectEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *SelectEmailAddressCommandFactory) Answer(bot *tgbotapi.BotAPI) error {
 	if !isValidEmailAddress(command.Args) {
 		command.Message.reply = selectEmailAddress
 		msg := tgbotapi.NewMessage(
@@ -112,16 +127,21 @@ func (command *SelectEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, e
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
-		return msg, nil
+
+		if _, err := bot.Send(msg); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	emailID, err := command.Repository.addEmailAddress(command.ChatID(), command.Args)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := command.Repository.saveEmailAddressForBuy(command.ChatID(), emailID); err != nil {
-		return nil, err
+		return err
 	}
 
 	command.Message.reply = selectBitcoinAddress
@@ -131,14 +151,19 @@ func (command *SelectEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, e
 	)
 	msg.ReplyMarkup = sendBTCAddressMarkup(command.Localizer())
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type EnterCoinNameCommandFactory struct {
 	CommandFactory
 }
 
-func (command *EnterCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *EnterCoinNameCommandFactory) Answer(bot *tgbotapi.BotAPI) error {
 	if !isValidCoinName(command.Args) {
 		command.Message.reply = enterCoinName
 		msg := tgbotapi.NewMessage(
@@ -146,11 +171,16 @@ func (command *EnterCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error)
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
-		return msg, nil
+
+		if _, err := bot.Send(msg); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	if err := command.Repository.saveCoinNameForSell(command.ChatID(), command.Args); err != nil {
-		return nil, err
+		return err
 	}
 
 	command.Message.reply = enterPriceCoin
@@ -160,14 +190,19 @@ func (command *EnterCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error)
 	)
 	//msg.ReplyMarkup = todo
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type EnterPriceCoinCommandFactory struct {
 	CommandFactory
 }
 
-func (command *EnterPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *EnterPriceCoinCommandFactory) Answer(bot *tgbotapi.BotAPI) error {
 	if !isValidPriceCoin(command.Args) {
 		command.Message.reply = enterPriceCoin
 		msg := tgbotapi.NewMessage(
@@ -175,11 +210,16 @@ func (command *EnterPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
-		return msg, nil
+
+		if _, err := bot.Send(msg); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	if err := command.Repository.savePriceForSell(command.ChatID(), command.Args); err != nil {
-		return nil, err
+		return err
 	}
 
 	command.Message.reply = selectBitcoinAddress
@@ -189,14 +229,19 @@ func (command *EnterPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error
 	)
 	msg.ReplyMarkup = selectBitcoinMarkup(command.Localizer(), command.Repository.btcAddresses())
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type SelectBitcoinAddressCommandFactory struct {
 	CommandFactory
 }
 
-func (command *SelectBitcoinAddressCommandFactory) Answer() (tgbotapi.Chattable, error) { //todo make []Chattable
+func (command *SelectBitcoinAddressCommandFactory) Answer(bot *tgbotapi.BotAPI) error { //todo make []Chattable
 	if !isValidBitcoinAddress(command.Args) {
 		command.Message.reply = selectBitcoinAddress
 		msg := tgbotapi.NewMessage(
@@ -204,7 +249,12 @@ func (command *SelectBitcoinAddressCommandFactory) Answer() (tgbotapi.Chattable,
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
 		)
 		msg.ParseMode = "markdown"
-		return msg, nil
+
+		if _, err := bot.Send(msg); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	command.Message.reply = sendYourCoins
@@ -214,5 +264,10 @@ func (command *SelectBitcoinAddressCommandFactory) Answer() (tgbotapi.Chattable,
 	)
 	//msg.ReplyMarkup = todo
 	msg.ParseMode = "markdown"
-	return msg, nil
+
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
