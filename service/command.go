@@ -66,13 +66,13 @@ func (command *HelpCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	return msg, nil
 }
 
-type SendMinterAddressCommandFactory struct {
+type SelectMinterAddressCommandFactory struct {
 	CommandFactory
 }
 
-func (command *SendMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *SelectMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	if !isValidMinterAddress(command.Args) {
-		command.Message.reply = sendMinterAddress
+		command.Message.reply = selectMinterAddress
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
@@ -90,7 +90,7 @@ func (command *SendMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, er
 		return nil, err
 	}
 
-	command.Message.reply = sendEmailAddress
+	command.Message.reply = selectEmailAddress
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply}),
@@ -100,13 +100,13 @@ func (command *SendMinterAddressCommandFactory) Answer() (tgbotapi.Chattable, er
 	return msg, nil
 }
 
-type SendEmailAddressCommandFactory struct {
+type SelectEmailAddressCommandFactory struct {
 	CommandFactory
 }
 
-func (command *SendEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *SelectEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	if !isValidEmailAddress(command.Args) {
-		command.Message.reply = sendEmailAddress
+		command.Message.reply = selectEmailAddress
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
@@ -124,7 +124,7 @@ func (command *SendEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, err
 		return nil, err
 	}
 
-	command.Message.reply = "send_btc"
+	command.Message.reply = selectBitcoinAddress
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		fmt.Sprintf(command.translate(command.reply), 0.0184, -24.28, 516841, 4.00, command.Repository.btcAddresses()),
@@ -134,13 +134,13 @@ func (command *SendEmailAddressCommandFactory) Answer() (tgbotapi.Chattable, err
 	return msg, nil
 }
 
-type SendCoinNameCommandFactory struct {
+type EnterCoinNameCommandFactory struct {
 	CommandFactory
 }
 
-func (command *SendCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *EnterCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	if !isValidCoinName(command.Args) {
-		command.Message.reply = sendCoinName
+		command.Message.reply = enterCoinName
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
@@ -153,7 +153,7 @@ func (command *SendCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) 
 		return nil, err
 	}
 
-	command.Message.reply = sendPriceCoin
+	command.Message.reply = enterPriceCoin
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		fmt.Sprintf(command.translate(command.reply)),
@@ -163,13 +163,13 @@ func (command *SendCoinNameCommandFactory) Answer() (tgbotapi.Chattable, error) 
 	return msg, nil
 }
 
-type SendPriceCoinCommandFactory struct {
+type EnterPriceCoinCommandFactory struct {
 	CommandFactory
 }
 
-func (command *SendPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
+func (command *EnterPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
 	if !isValidPriceCoin(command.Args) {
-		command.Message.reply = sendPriceCoin
+		command.Message.reply = enterPriceCoin
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
@@ -182,7 +182,7 @@ func (command *SendPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error)
 		return nil, err
 	}
 
-	command.Message.reply = sendBitcoin
+	command.Message.reply = selectBitcoinAddress
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		fmt.Sprintf(command.translate(command.reply)),
@@ -192,13 +192,13 @@ func (command *SendPriceCoinCommandFactory) Answer() (tgbotapi.Chattable, error)
 	return msg, nil
 }
 
-type SendBitcoinCommandFactory struct {
+type SelectBitcoinAddressCommandFactory struct {
 	CommandFactory
 }
 
-func (command *SendBitcoinCommandFactory) Answer() (tgbotapi.Chattable, error) { //todo make []Chattable
+func (command *SelectBitcoinAddressCommandFactory) Answer() (tgbotapi.Chattable, error) { //todo make []Chattable
 	if !isValidBitcoinAddress(command.Args) {
-		command.Message.reply = sendBitcoin
+		command.Message.reply = selectBitcoinAddress
 		msg := tgbotapi.NewMessage(
 			command.ChatID(),
 			command.Localizer().MustLocalize(&i18n.LocalizeConfig{MessageID: command.Message.reply + "_invalid"}),
@@ -207,7 +207,7 @@ func (command *SendBitcoinCommandFactory) Answer() (tgbotapi.Chattable, error) {
 		return msg, nil
 	}
 
-	command.Message.reply = "send_coin"
+	command.Message.reply = sendYourCoins
 	msg := tgbotapi.NewMessage(
 		command.ChatID(),
 		fmt.Sprintf(command.translate(command.reply), "BIP", "BIP", "www.example.com"),

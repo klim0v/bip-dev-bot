@@ -145,21 +145,29 @@ func (a *AbstractFactory) Log(err error) {
 }
 
 const (
-	sendCoinName      = "send_coin_name"
-	sendPriceCoin     = "send_price_coin"
-	sendBitcoin       = "send_bitcoin"
-	sendEmailAddress  = "send_email_address"
-	sendMinterAddress = "send_minter_address"
-	sellCoin          = "sell_coin"
-	buyCoin           = "buy_coin"
-	useEmailAddress   = "use_email_address"
-	useMinterAddress  = "use_minter_address"
-	checkSell         = "check_sell"
-	myOrders          = "my_orders"
-	useBitcoinAddress = "use_bitcoin_address"
-	sendDeposit       = "send_deposit"
-	sendCoin          = "send_coin"
-	help              = "help"
+	checkSendDeposit     = "check_send_deposit"
+	sendDepositForBuyBIP = "send_deposit"
+	buyCoin              = "buy_coin"
+
+	selectEmailAddress   = "select_email_address"
+	selectMinterAddress  = "select_minter_address"
+	selectBitcoinAddress = "select_bitcoin_address"
+	newEmailAddress      = "new_email_address"
+	newMinterAddress     = "new_minter_address"
+	newBitcoinAddress    = "new_bitcoin_address"
+	useEmailAddress      = "use_email_address"
+	useMinterAddress     = "use_minter_address"
+	useBitcoinAddress    = "use_bitcoin_address"
+
+	sellCoin       = "sell_coin"
+	enterCoinName  = "enter_coin_name"
+	enterPriceCoin = "enter_price_coin"
+
+	checkSell = "check_sell"
+	myOrders  = "my_orders"
+
+	sendYourCoins = "send_your_coins"
+	help          = "help"
 )
 
 func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
@@ -185,8 +193,10 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 		}
 
 		switch callbackFactory.Command {
+		case checkSendDeposit:
+			concreteFactory = &ToDoCallbackFactory{CallbackFactory: callbackFactory}
 		case sellCoin:
-			concreteFactory = &SellCoinNameCallbackFactory{CallbackFactory: callbackFactory}
+			concreteFactory = &SellCoinCallbackFactory{CallbackFactory: callbackFactory}
 		case buyCoin:
 			concreteFactory = &BuyCoinCallbackFactory{CallbackFactory: callbackFactory}
 		case useEmailAddress:
@@ -194,9 +204,7 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 		case useMinterAddress:
 			concreteFactory = &UseMinterAddressCallbackFactory{CallbackFactory: callbackFactory}
 		case checkSell:
-			concreteFactory = &CheckBTCAddressCallbackFactory{CallbackFactory: callbackFactory}
-		case sendCoin:
-			concreteFactory = &SellCoinNameCallbackFactory{CallbackFactory: callbackFactory}
+			concreteFactory = &CheckSellCallbackFactory{CallbackFactory: callbackFactory}
 		case useBitcoinAddress:
 			concreteFactory = &UseBitcoinAddressCallbackFactory{CallbackFactory: callbackFactory}
 		default:
@@ -230,16 +238,16 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 	}
 
 	switch commandFactory.Command {
-	case sendCoinName:
-		concreteFactory = &SendCoinNameCommandFactory{CommandFactory: commandFactory}
-	case sendPriceCoin:
-		concreteFactory = &SendPriceCoinCommandFactory{CommandFactory: commandFactory}
-	case sendBitcoin:
-		concreteFactory = &SendBitcoinCommandFactory{CommandFactory: commandFactory}
-	case sendEmailAddress:
-		concreteFactory = &SendEmailAddressCommandFactory{CommandFactory: commandFactory}
-	case sendMinterAddress:
-		concreteFactory = &SendMinterAddressCommandFactory{CommandFactory: commandFactory}
+	case enterCoinName:
+		concreteFactory = &EnterCoinNameCommandFactory{CommandFactory: commandFactory}
+	case enterPriceCoin:
+		concreteFactory = &EnterPriceCoinCommandFactory{CommandFactory: commandFactory}
+	case selectBitcoinAddress:
+		concreteFactory = &SelectBitcoinAddressCommandFactory{CommandFactory: commandFactory}
+	case selectEmailAddress:
+		concreteFactory = &SelectEmailAddressCommandFactory{CommandFactory: commandFactory}
+	case selectMinterAddress:
+		concreteFactory = &SelectMinterAddressCommandFactory{CommandFactory: commandFactory}
 	default:
 		concreteFactory = &HelpCommandFactory{CommandFactory: commandFactory}
 	}

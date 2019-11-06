@@ -36,7 +36,7 @@ func selectBitcoinMarkup(localizer *i18n.Localizer, addresses []Address) tgbotap
 			tgbotapi.NewInlineKeyboardButtonData(address.Value, fmt.Sprintf("%s %d", useBitcoinAddress, address.ID))))
 	}
 	addressesKeyboard = append(addressesKeyboard, tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), sendPriceCoin),
+		tgbotapi.NewInlineKeyboardButtonData(localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "cancel"}), enterPriceCoin),
 	))
 	return tgbotapi.NewInlineKeyboardMarkup(addressesKeyboard...)
 }
