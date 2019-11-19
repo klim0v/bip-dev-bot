@@ -1,6 +1,9 @@
 package service
 
 import (
+	"bip-dev/service/message"
+	"bip-dev/service/message/callback"
+	"bip-dev/service/message/command"
 	"fmt"
 	"github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -11,8 +14,8 @@ import (
 )
 
 type Application struct {
-	rds            *redis.Client
-	pgql           *sqlx.DB
+	Rds            *redis.Client
+	Pgql           *sqlx.DB
 	languageBundle *i18n.Bundle
 	logger         *log.Logger
 }
@@ -28,7 +31,7 @@ func (s *Application) SaveLanguage(chatID int64, lang string) {
 }
 
 func (s *Application) saveLanguage(chatID int64, lang string) error {
-	if err := s.rds.Set(fmt.Sprintf("%d:lang", chatID), lang, 0).Err(); err != nil {
+	if err := s.Rds.Set(fmt.Sprintf("%d:lang", chatID), lang, 0).Err(); err != nil {
 		return err
 	}
 	return nil
@@ -41,14 +44,14 @@ func (s *Application) SaveReply(chatID int64, lang string) {
 }
 
 func (s *Application) saveReply(chatID int64, lang string) error {
-	if err := s.rds.Set(fmt.Sprintf("%d:last", chatID), lang, 0).Err(); err != nil {
+	if err := s.Rds.Set(fmt.Sprintf("%d:last", chatID), lang, 0).Err(); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (s *Application) language(chatID int64) (string, error) {
-	lang, err := s.rds.Get(fmt.Sprintf("%d:lang", chatID)).Result()
+	lang, err := s.Rds.Get(fmt.Sprintf("%d:lang", chatID)).Result()
 	if err == redis.Nil {
 		return "", nil
 	}
@@ -68,7 +71,7 @@ func (s *Application) Language(chatID int64) string {
 }
 
 func (s *Application) lastCommand(chatID int64) (string, error) {
-	lang, err := s.rds.Get(fmt.Sprintf("%d:last", chatID)).Result()
+	lang, err := s.Rds.Get(fmt.Sprintf("%d:last", chatID)).Result()
 	if err == redis.Nil {
 		return "", nil
 	}
@@ -93,86 +96,14 @@ func (s *Application) Log(err error) {
 
 func NewApplication(rds *redis.Client, pgql *sqlx.DB, languageBundle *i18n.Bundle, logger *log.Logger) *Application {
 	return &Application{
-		rds:            rds,
-		pgql:           pgql,
+		Rds:            rds,
+		Pgql:           pgql,
 		languageBundle: languageBundle,
 		logger:         logger,
 	}
 }
 
-type Resource interface {
-	Localizer(lang ...string) *i18n.Localizer
-	SaveLanguage(chatID int64, lang string)
-	SaveReply(chatID int64, reply string)
-	Language(chatID int64) string
-	LastCommand(chatID int64) string
-	Log(error)
-}
-
-type Factory interface {
-	ChatID() int64
-	SetLocalizer(*i18n.Localizer)
-	Localizer() *i18n.Localizer
-	MessageLang() string
-	Reply() string
-	Answer(*tgbotapi.BotAPI) error
-}
-
-type AbstractFactory struct {
-	factory  Factory
-	resource Resource
-}
-
-func (a *AbstractFactory) Answer(bot *tgbotapi.BotAPI) error {
-	return a.factory.Answer(bot)
-}
-
-func (a *AbstractFactory) SaveLanguage(lang string) {
-	a.factory.SetLocalizer(a.resource.Localizer(lang, a.factory.MessageLang()))
-	a.resource.SaveLanguage(a.factory.ChatID(), lang)
-}
-
-func (a *AbstractFactory) SaveReply() {
-	a.resource.SaveReply(a.factory.ChatID(), a.factory.Reply())
-}
-
-func (a *AbstractFactory) SetLocalizer() {
-	a.factory.SetLocalizer(a.resource.Localizer(a.resource.Language(a.factory.ChatID()), a.factory.MessageLang()))
-}
-
-func (a *AbstractFactory) Log(err error) {
-	a.resource.Log(err)
-}
-
-const (
-	checkSendDeposit     = "check_send_deposit"
-	sendDepositForBuyBIP = "send_deposit"
-	buyCoin              = "buy_coin"
-	waitDepositBtc       = "wait_deposit_btc"
-
-	selectEmailAddress   = "select_email_address"
-	selectMinterAddress  = "select_minter_address"
-	selectBitcoinAddress = "select_bitcoin_address"
-	newEmailAddress      = "new_email_address"
-	newMinterAddress     = "new_minter_address"
-	newBitcoinAddress    = "new_bitcoin_address"
-	useEmailAddress      = "use_email_address"
-	useMinterAddress     = "use_minter_address"
-	useBitcoinAddress    = "use_bitcoin_address"
-
-	sellCoin       = "sell_coin"
-	enterCoinName  = "enter_coin_name"
-	enterPriceCoin = "enter_price_coin"
-	checkSell      = "check_sell"
-
-	myOrders = "my_orders"
-
-	sendYourCoins   = "send_your_coins"
-	help            = "help"
-	waitDepositCoin = "wait_deposit_coin"
-)
-
-func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
+func (s *Application) NewFactory(update tgbotapi.Update) *message.AbstractFactory {
 	if update.CallbackQuery != nil {
 		fields := strings.Fields(update.CallbackQuery.Data)
 		var args string
@@ -180,82 +111,78 @@ func (s *Application) NewFactory(update tgbotapi.Update) *AbstractFactory {
 			args = fields[1]
 		}
 
-		var concreteFactory Factory
-		callbackFactory := CallbackFactory{
-			Message: Message{
-				chatID:      update.CallbackQuery.Message.Chat.ID,
-				messageLang: update.CallbackQuery.Message.From.LanguageCode,
-				localizer:   nil,
-				reply:       "",
-			},
+		var concreteFactory message.Factory
+		var msg message.Message
+		msg.SetMessageLang(update.CallbackQuery.Message.From.LanguageCode)
+		msg.SetChatID(update.CallbackQuery.Message.Chat.ID)
+		callbackFactory := callback.CallbackFactory{
+			Message:         msg,
 			MessageUpdateID: update.CallbackQuery.Message.MessageID,
 			Command:         fields[0],
 			Args:            args,
-			Repository:      NewRepository(s.rds, s.pgql),
+			Repository:      message.NewRepository(s.Rds, s.Pgql),
 		}
 
 		switch callbackFactory.Command {
-		case checkSendDeposit:
-			concreteFactory = &CheckSendDepositCallbackFactory{CallbackFactory: callbackFactory, QueryID: update.CallbackQuery.ID}
-		case sellCoin:
-			concreteFactory = &SellCoinCallbackFactory{CallbackFactory: callbackFactory}
-		case buyCoin:
-			concreteFactory = &BuyCoinCallbackFactory{CallbackFactory: callbackFactory}
-		case useEmailAddress:
-			concreteFactory = &UseEmailAddressCallbackFactory{CallbackFactory: callbackFactory}
-		case useMinterAddress:
-			concreteFactory = &UseMinterAddressCallbackFactory{CallbackFactory: callbackFactory}
-		case checkSell:
-			concreteFactory = &CheckSellCallbackFactory{CallbackFactory: callbackFactory, QueryID: update.CallbackQuery.ID}
-		case useBitcoinAddress:
-			concreteFactory = &UseBitcoinAddressCallbackFactory{CallbackFactory: callbackFactory}
+		case message.CheckSendDeposit:
+			concreteFactory = &callback.CheckSendDepositCallbackFactory{CallbackFactory: callbackFactory, QueryID: update.CallbackQuery.ID}
+		case message.SellCoin:
+			concreteFactory = &callback.SellCoinCallbackFactory{CallbackFactory: callbackFactory}
+		case message.BuyCoin:
+			concreteFactory = &callback.BuyCoinCallbackFactory{CallbackFactory: callbackFactory}
+		case message.UseEmailAddress:
+			concreteFactory = &callback.UseEmailAddressCallbackFactory{CallbackFactory: callbackFactory}
+		case message.UseMinterAddress:
+			concreteFactory = &callback.UseMinterAddressCallbackFactory{CallbackFactory: callbackFactory}
+		case message.CheckSell:
+			concreteFactory = &callback.CheckSellCallbackFactory{CallbackFactory: callbackFactory, QueryID: update.CallbackQuery.ID}
+		case message.UseBitcoinAddress:
+			concreteFactory = &callback.UseBitcoinAddressCallbackFactory{CallbackFactory: callbackFactory}
 		default:
-			concreteFactory = &HelpCallbackFactory{CallbackFactory: callbackFactory}
+			concreteFactory = &callback.HelpCallbackFactory{CallbackFactory: callbackFactory}
 		}
 
-		return &AbstractFactory{
-			factory:  concreteFactory,
-			resource: s,
+		return &message.AbstractFactory{
+			Factory:  concreteFactory,
+			Resource: s,
 		}
 	}
 
-	command := update.Message.Command()
+	cmd := update.Message.Command()
 	commandArguments := update.Message.CommandArguments()
 	if !update.Message.IsCommand() {
-		command = s.LastCommand(update.Message.Chat.ID)
+		cmd = s.LastCommand(update.Message.Chat.ID)
 		commandArguments = update.Message.Text
 	}
 
-	var concreteFactory Factory
-	commandFactory := CommandFactory{
-		Message: Message{
-			chatID:      update.Message.Chat.ID,
-			messageLang: update.Message.From.LanguageCode,
-			localizer:   nil,
-			reply:       "",
-		},
-		Command:    command,
+	var concreteFactory message.Factory
+	var msg message.Message
+	msg.SetMessageLang(update.Message.From.LanguageCode)
+	msg.SetChatID(update.Message.Chat.ID)
+	commandFactory := command.CommandFactory{
+		Message:    msg,
+		Command:    cmd,
 		Args:       commandArguments,
-		Repository: NewRepository(s.rds, s.pgql),
+		Repository: message.NewRepository(s.Rds, s.Pgql),
 	}
 
 	switch commandFactory.Command {
-	case enterCoinName:
-		concreteFactory = &EnterCoinNameCommandFactory{CommandFactory: commandFactory}
-	case enterPriceCoin:
-		concreteFactory = &EnterPriceCoinCommandFactory{CommandFactory: commandFactory}
-	case selectBitcoinAddress:
-		concreteFactory = &SelectBitcoinAddressCommandFactory{CommandFactory: commandFactory}
-	case selectEmailAddress:
-		concreteFactory = &SelectEmailAddressCommandFactory{CommandFactory: commandFactory}
-	case selectMinterAddress:
-		concreteFactory = &SelectMinterAddressCommandFactory{CommandFactory: commandFactory}
+	case message.EnterCoinName:
+		concreteFactory = &command.EnterCoinNameCommandFactory{CommandFactory: commandFactory}
+	case message.EnterPriceCoin:
+		concreteFactory = &command.EnterPriceCoinCommandFactory{CommandFactory: commandFactory}
+	case message.EnterBitcoinAddress:
+		concreteFactory = &command.EnterBitcoinAddressCommandFactory{CommandFactory: commandFactory}
+	case message.EnterEmailAddress:
+		concreteFactory = &command.EnterEmailAddressCommandFactory{CommandFactory: commandFactory}
+	case message.EnterMinterAddress:
+		concreteFactory = &command.EnterMinterAddressCommandFactory{CommandFactory: commandFactory}
 	default:
-		concreteFactory = &HelpCommandFactory{CommandFactory: commandFactory}
+		concreteFactory = &command.HelpCommandFactory{CommandFactory: commandFactory}
 	}
 
-	return &AbstractFactory{
-		factory:  concreteFactory,
-		resource: s,
+	return &message.AbstractFactory{
+		Factory:  concreteFactory,
+		Resource: s,
 	}
 }

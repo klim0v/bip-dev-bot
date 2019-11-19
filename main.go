@@ -2,6 +2,7 @@ package main
 
 import (
 	"bip-dev/service"
+	"bip-dev/service/message"
 	"github.com/BurntSushi/toml"
 	"github.com/go-redis/redis"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -73,7 +74,7 @@ func isValidData(update tgbotapi.Update) bool {
 			update.CallbackQuery.Message == nil || update.CallbackQuery.Message.From == nil)
 }
 
-func handle(factory *service.AbstractFactory, bot *tgbotapi.BotAPI, wg *sync.WaitGroup) {
+func handle(factory *message.AbstractFactory, bot *tgbotapi.BotAPI, wg *sync.WaitGroup) {
 	defer wg.Done()
 	factory.SetLocalizer()
 	err := factory.Answer(bot)
