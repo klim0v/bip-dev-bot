@@ -2,7 +2,6 @@ package callback
 
 import (
 	"bip-dev/service/message"
-	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -13,7 +12,7 @@ type CheckSendDepositCallbackFactory struct {
 
 func (callback *CheckSendDepositCallbackFactory) Answer(bot *tgbotapi.BotAPI) error {
 	callback.Message.SetReply(message.WaitDepositCoin)
-	msg := tgbotapi.NewCallbackWithAlert(callback.QueryID, fmt.Sprintf(callback.Translate(callback.Reply()), "BIP"))
+	msg := tgbotapi.NewCallbackWithAlert(callback.QueryID, callback.Translate(callback.Reply()))
 
 	if _, err := bot.AnswerCallbackQuery(msg); err != nil {
 		return err
