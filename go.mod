@@ -12,6 +12,6 @@ require (
 	github.com/onsi/ginkgo v1.10.2 // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
-	golang.org/x/text v0.3.2
+	golang.org/x/text v0.3.8
 	google.golang.org/appengine v1.6.5 // indirect
 )
